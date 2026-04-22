@@ -2,6 +2,8 @@ mod downsampling_pipeline;
 mod settings;
 mod upsampling_pipeline;
 
+use core::option::Option;
+
 use bevy_image::ToExtents;
 pub use settings::{Bloom, BloomCompositeMode, BloomPrefilter};
 

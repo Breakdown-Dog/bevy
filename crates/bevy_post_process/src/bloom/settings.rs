@@ -1,10 +1,14 @@
+use core::option::Option::None;
+
 use super::downsampling_pipeline::BloomUniforms;
+use bevy_asset::Handle;
 use bevy_camera::{Camera, Hdr};
 use bevy_ecs::{
     prelude::Component,
     query::{QueryItem, With},
     reflect::ReflectComponent,
 };
+use bevy_image::Image;
 use bevy_math::{AspectRatio, URect, UVec4, Vec2, Vec4};
 use bevy_reflect::{std_traits::ReflectDefault, Reflect};
 use bevy_render::{extract_component::ExtractComponent, sync_component::SyncComponent};
@@ -121,6 +125,8 @@ pub struct Bloom {
     /// anamorphic blur by using a large x-value. For large values, you may need to increase
     /// [`Bloom::max_mip_dimension`] to reduce sampling artifacts.
     pub scale: Vec2,
+
+    pub lens_dirt: LensDirt,
 }
 
 impl Bloom {
@@ -141,6 +147,10 @@ impl Bloom {
         composite_mode: BloomCompositeMode::EnergyConserving,
         max_mip_dimension: Self::DEFAULT_MAX_MIP_DIMENSION,
         scale: Vec2::ONE,
+        lens_dirt: LensDirt {
+            intensity: 0.0,
+            texture: None,
+        },
     };
 
     /// Emulates the look of stylized anamorphic bloom, stretched horizontally.
@@ -164,6 +174,10 @@ impl Bloom {
         composite_mode: BloomCompositeMode::Additive,
         max_mip_dimension: Self::DEFAULT_MAX_MIP_DIMENSION,
         scale: Vec2::ONE,
+        lens_dirt: LensDirt {
+            intensity: 0.0,
+            texture: None,
+        },
     };
 
     /// A preset that applies a very strong bloom, and blurs the whole screen.
@@ -179,6 +193,10 @@ impl Bloom {
         composite_mode: BloomCompositeMode::EnergyConserving,
         max_mip_dimension: Self::DEFAULT_MAX_MIP_DIMENSION,
         scale: Vec2::ONE,
+        lens_dirt: LensDirt {
+            intensity: 0.0,
+            texture: None,
+        },
     };
 }
 
@@ -218,6 +236,13 @@ pub struct BloomPrefilter {
 pub enum BloomCompositeMode {
     EnergyConserving,
     Additive,
+}
+
+#[derive(Default, Clone, Reflect)]
+#[reflect(Clone, Default)]
+pub struct LensDirt {
+    pub intensity: f32,
+    pub texture: Option<Handle<Image>>,
 }
 
 impl SyncComponent for Bloom {

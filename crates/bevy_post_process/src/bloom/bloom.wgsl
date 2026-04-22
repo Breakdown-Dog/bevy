@@ -17,6 +17,7 @@ struct BloomUniforms {
 @group(0) @binding(1) var s: sampler;
 
 @group(0) @binding(2) var<uniform> uniforms: BloomUniforms;
+@group(0) @binding(3) var dirt_texture: texture_2d<f32>;
 
 #ifdef FIRST_DOWNSAMPLE
 // https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/#3.4

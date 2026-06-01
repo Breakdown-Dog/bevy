@@ -13,13 +13,6 @@ struct BloomUniforms {
     viewport: vec4<f32>,
     scale: vec2<f32>,
     aspect: f32,
-    intensity: f32,
-    low_frequency_boost: f32,
-    low_frequency_boost_curvature: f32,
-    high_pass_frequency: f32,
-    // BloomCompositeMode::EnergyConserving = 0, BloomCompositeMode::Additive = 1.
-    composite_mode: u32,
-    max_mip: f32,
     lens_dirt_intensity: f32,
     lens_dirt_tint: vec3<f32>,
     padding: u32,
@@ -29,6 +22,13 @@ struct BloomUniforms {
 @group(0) @binding(1) var s: sampler;
 
 @group(0) @binding(2) var<uniform> uniforms: BloomUniforms;
+@group(0) @binding(3) var<storage, read> blend_factor: f32;
+
+@if(LENS_DIRT) {
+    @group(0) @binding(4) var dirt_texture: texture_2d<f32>;
+    @group(0) @binding(5) var dirt_sampler: sampler;
+}
+
 
 @if(FIRST_DOWNSAMPLE)
 // https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/#3.4
@@ -195,18 +195,17 @@ fn downsample_first(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(sample, 1.0);
 }
 
-@ifdef LENS_DIRT
+@if(LENS_DIRT)
 @fragment
 fn upsample_final(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     let bloom = sample_input_3x3_tent(in.uv);
     let bloom_intensity = max(bloom.r, max(bloom.g, bloom.b));
-    let base_alpha = compute_blend_factor_gpu(0.0, uniforms.max_mip);
 
     let dirt = textureSample(dirt_texture, dirt_sampler, in.uv).r;
     let amount = clamp(dirt * uniforms.lens_dirt_intensity * bloom_intensity, 0.0, 1.0);
 
     let result_bloom = mix(bloom.rgb, bloom.rgb * uniforms.lens_dirt_tint.rgb, amount);
-    let alpha = mix(base_alpha, 1.0, amount);
+    let alpha = mix(blend_factor, 1.0, amount);
 
     return vec4<f32>(result_bloom, alpha);
 }
@@ -218,5 +217,5 @@ fn downsample(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
 @fragment
 fn upsample(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(sample_input_3x3_tent(in.uv), 1.0);
+    return vec4<f32>(sample_input_3x3_tent(in.uv), blend_factor);
 }

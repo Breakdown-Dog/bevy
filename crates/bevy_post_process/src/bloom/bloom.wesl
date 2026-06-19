@@ -7,7 +7,9 @@
 // * [PBB] - Physically Based Bloom - https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
 
 import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
-import bevy_post_process::lens_dirt::LensDirtUniforms
+
+@if(LENS_DIRT)
+import bevy_post_process::lens_dirt::{LensDirtUniforms, lens_dirt_texture, lens_dirt_sampler, lens_dirt_uniforms}
 
 struct BloomUniforms {
     threshold_precomputations: vec4<f32>,
@@ -227,7 +229,6 @@ fn upsample(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     return vec4<f32>(result_bloom, alpha);
 }
-@else {
+@else 
     return vec4<f32>(bloom, blend_factor);
-}
 }

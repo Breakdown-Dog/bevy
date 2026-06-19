@@ -7,26 +7,24 @@
 // * [PBB] - Physically Based Bloom - https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
 
 import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
+import bevy_post_process::lens_dirt::LensDirtUniforms
 
 struct BloomUniforms {
     threshold_precomputations: vec4<f32>,
     viewport: vec4<f32>,
     scale: vec2<f32>,
     aspect: f32,
-    lens_dirt_intensity: f32,
-    lens_dirt_tint: vec3<f32>,
-    padding: u32,
 };
 
 @group(0) @binding(0) var input_texture: texture_2d<f32>;
 @group(0) @binding(1) var s: sampler;
-
 @group(0) @binding(2) var<uniform> uniforms: BloomUniforms;
 @group(0) @binding(3) var<storage, read> blend_factor: f32;
 
 @if(LENS_DIRT) {
-    @group(0) @binding(4) var dirt_texture: texture_2d<f32>;
-    @group(0) @binding(5) var dirt_sampler: sampler;
+    @group(1) @binding(0) var lens_dirt_texture: texture_2d<f32>;
+    @group(1) @binding(1) var lens_dirt_sampler: sampler;
+    @group(1) @binding(2) var<uniform> lens_dirt_uniforms: LensDirtUniforms;
 }
 
 
@@ -217,5 +215,19 @@ fn downsample(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
 @fragment
 fn upsample(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(sample_input_3x3_tent(in.uv), blend_factor);
+    let bloom = sample_input_3x3_tent(in.uv);
+@if(LENS_DIRT) {
+    let bloom_intensity = max(bloom.r, max(bloom.g, bloom.b));
+
+    let dirt = textureSample(lens_dirt_texture, lens_dirt_sampler, in.uv).r;
+    let amount = clamp(dirt * lens_dirt_uniforms.intensity * bloom_intensity, 0.0, 1.0);
+
+    let result_bloom = mix(bloom.rgb, bloom.rgb * lens_dirt_uniforms.tint.rgb, amount);
+    let alpha = mix(blend_factor, 1.0, amount);
+
+    return vec4<f32>(result_bloom, alpha);
+}
+@else {
+    return vec4<f32>(bloom, blend_factor);
+}
 }

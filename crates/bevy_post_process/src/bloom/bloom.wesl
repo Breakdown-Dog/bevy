@@ -6,10 +6,10 @@
 // * [COD] - Next Generation Post Processing in Call of Duty - http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
 // * [PBB] - Physically Based Bloom - https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
 
-import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
+import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput;
 
 @if(LENS_DIRT)
-import bevy_post_process::lens_dirt::{LensDirtUniforms, lens_dirt_texture, lens_dirt_sampler, lens_dirt_uniforms}
+import bevy_post_process::lens_dirt::lens_dirt::{LensDirtUniforms, lens_dirt_texture, lens_dirt_sampler, lens_dirt_uniforms};
 
 struct BloomUniforms {
     threshold_precomputations: vec4<f32>,
@@ -22,12 +22,6 @@ struct BloomUniforms {
 @group(0) @binding(1) var s: sampler;
 @group(0) @binding(2) var<uniform> uniforms: BloomUniforms;
 @group(0) @binding(3) var<storage, read> blend_factor: f32;
-
-@if(LENS_DIRT) {
-    @group(1) @binding(0) var lens_dirt_texture: texture_2d<f32>;
-    @group(1) @binding(1) var lens_dirt_sampler: sampler;
-    @group(1) @binding(2) var<uniform> lens_dirt_uniforms: LensDirtUniforms;
-}
 
 
 @if(FIRST_DOWNSAMPLE)
@@ -195,21 +189,6 @@ fn downsample_first(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(sample, 1.0);
 }
 
-@if(LENS_DIRT)
-@fragment
-fn upsample_final(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    let bloom = sample_input_3x3_tent(in.uv);
-    let bloom_intensity = max(bloom.r, max(bloom.g, bloom.b));
-
-    let dirt = textureSample(dirt_texture, dirt_sampler, in.uv).r;
-    let amount = clamp(dirt * uniforms.lens_dirt_intensity * bloom_intensity, 0.0, 1.0);
-
-    let result_bloom = mix(bloom.rgb, bloom.rgb * uniforms.lens_dirt_tint.rgb, amount);
-    let alpha = mix(blend_factor, 1.0, amount);
-
-    return vec4<f32>(result_bloom, alpha);
-}
-
 @fragment
 fn downsample(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(sample_input_13_tap(in.uv), 1.0);
@@ -229,6 +208,6 @@ fn upsample(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     return vec4<f32>(result_bloom, alpha);
 }
-@else 
+@else
     return vec4<f32>(bloom, blend_factor);
 }
